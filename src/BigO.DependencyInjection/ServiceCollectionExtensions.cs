@@ -33,26 +33,33 @@ public static class ServiceCollectionExtensions
     }
 
     /// <summary>
-    ///     Scans the specified assembly for types that are assignable to the type specified by <typeparamref name="TBase" />
-    ///     and adds them to the service collection.
+    /// Adds services from an assembly containing a specified type to the <see cref="IServiceCollection"/> with the specified <see cref="ServiceLifetime"/>.
     /// </summary>
-    /// <typeparam name="TAssemblyType">The type whose assembly should be scanned.</typeparam>
-    /// <typeparam name="TBase">The base type that the scanned types must be assignable to.</typeparam>
-    /// <param name="serviceCollection">The service collection to which the types should be added. Cannot be <c>null</c>.</param>
-    /// <param name="serviceLifetime">The lifetime of the added services. Defaults to <see cref="ServiceLifetime.Transient" />.</param>
-    /// <returns>The modified service collection.</returns>
-    /// <exception cref="ArgumentNullException">Thrown when the serviceCollection parameter is <c>null</c>.</exception>
+    /// <typeparam name="TAssemblyType">A type contained within the target assembly.</typeparam>
+    /// <typeparam name="TBase">A base type or interface that the services should be assignable to.</typeparam>
+    /// <param name="serviceCollection">The <see cref="IServiceCollection"/> to add the services to.</param>
+    /// <param name="serviceLifetime">The desired <see cref="ServiceLifetime"/> for the added services. Defaults to <see cref="ServiceLifetime.Transient"/>.</param>
+    /// <returns>The updated <see cref="IServiceCollection"/> with the added services.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when an unsupported <see cref="ServiceLifetime"/> value is passed.</exception>
+    /// <example>
+    /// <code><![CDATA[
+    /// IServiceCollection services = new ServiceCollection();
+    /// services.AddTypesFromAssembly<Startup, IMyInterface>(ServiceLifetime.Scoped);
+    /// ]]></code>
+    /// </example>
     /// <remarks>
-    ///     This method scans the assembly of the specified type <typeparamref name="TAssemblyType" /> for types that are
-    ///     assignable to the type specified by <typeparamref name="TBase" />.
-    ///     It then adds these types to the service collection as implemented interfaces with the specified
-    ///     <paramref name="serviceLifetime" />.
-    ///     If no value for <paramref name="serviceLifetime" /> is specified, the default value of
-    ///     <see cref="ServiceLifetime.Transient" /> is used.
+    /// The <see cref="AddTypesFromAssembly{TAssemblyType, TBase}"/> method is a helper method that scans an assembly containing a specified type (<paramref name="TAssemblyType"/>) for types assignable to a specified base type or interface (<paramref name="TBase"/>) and adds them to the provided <see cref="IServiceCollection"/> with the specified <see cref="ServiceLifetime"/>.
+    ///
+    /// This method is useful when you want to register multiple services in a single call, rather than manually registering each service one by one. It simplifies the process of adding services from a specific assembly that match certain criteria, such as being assignable to a specified base type or interface.
     /// </remarks>
     public static IServiceCollection AddTypesFromAssembly<TAssemblyType, TBase>(this IServiceCollection serviceCollection,
         ServiceLifetime serviceLifetime = ServiceLifetime.Transient)
     {
+        if (serviceCollection == null)
+        {
+            throw new ArgumentNullException(nameof(serviceCollection));
+        }
+        
         switch (serviceLifetime)
         {
             case ServiceLifetime.Scoped:
