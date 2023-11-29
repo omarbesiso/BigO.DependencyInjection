@@ -33,33 +33,73 @@ public static class ServiceCollectionExtensions
     }
 
     /// <summary>
-    /// Adds services from an assembly containing a specified type to the <see cref="IServiceCollection"/> with the specified <see cref="ServiceLifetime"/>.
+    ///     Loads a module by applying all the specified <see cref="IModule" /> registrations and configurations to the
+    ///     supplied service collection.
+    /// </summary>
+    /// <param name="serviceCollection">The service collection to contain the registrations.</param>
+    /// <param name="configuration">The optional configuration instance to be used for registrations.</param>
+    /// <returns>A reference to this service collection instance after the operation has completed.</returns>
+    public static IServiceCollection AddAllModules(this IServiceCollection serviceCollection,
+        IConfiguration? configuration = null)
+    {
+        var interfaceType = typeof(IModule);
+
+        var moduleTypes = AppDomain.CurrentDomain.GetAssemblies()
+            .SelectMany(s => s.GetTypes())
+            .Where(p => interfaceType.IsAssignableFrom(p)
+                        && p is { IsInterface: false, IsAbstract: false, IsClass: true });
+
+        foreach (var moduleType in moduleTypes)
+        {
+            var module = (IModule)Activator.CreateInstance(moduleType)!;
+            if (configuration != null)
+            {
+                module.Configuration = configuration;
+            }
+
+            module.Initialize(serviceCollection);
+        }
+
+        return serviceCollection;
+    }
+
+    /// <summary>
+    ///     Adds services from an assembly containing a specified type to the <see cref="IServiceCollection" /> with the
+    ///     specified <see cref="ServiceLifetime" />.
     /// </summary>
     /// <typeparam name="TAssemblyType">A type contained within the target assembly.</typeparam>
     /// <typeparam name="TBase">A base type or interface that the services should be assignable to.</typeparam>
-    /// <param name="serviceCollection">The <see cref="IServiceCollection"/> to add the services to.</param>
-    /// <param name="serviceLifetime">The desired <see cref="ServiceLifetime"/> for the added services. Defaults to <see cref="ServiceLifetime.Transient"/>.</param>
-    /// <returns>The updated <see cref="IServiceCollection"/> with the added services.</returns>
-    /// <exception cref="ArgumentOutOfRangeException">Thrown when an unsupported <see cref="ServiceLifetime"/> value is passed.</exception>
+    /// <param name="serviceCollection">The <see cref="IServiceCollection" /> to add the services to.</param>
+    /// <param name="serviceLifetime">
+    ///     The desired <see cref="ServiceLifetime" /> for the added services. Defaults to
+    ///     <see cref="ServiceLifetime.Transient" />.
+    /// </param>
+    /// <returns>The updated <see cref="IServiceCollection" /> with the added services.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">
+    ///     Thrown when an unsupported <see cref="ServiceLifetime" /> value is
+    ///     passed.
+    /// </exception>
     /// <example>
-    /// <code><![CDATA[
+    ///     <code><![CDATA[
     /// IServiceCollection services = new ServiceCollection();
     /// services.AddTypesFromAssembly<Startup, IMyInterface>(ServiceLifetime.Scoped);
     /// ]]></code>
     /// </example>
     /// <remarks>
-    /// The <see cref="AddTypesFromAssembly{TAssemblyType, TBase}"/> method is a helper method that scans an assembly containing a specified type (<paramref name="TAssemblyType"/>) for types assignable to a specified base type or interface (<paramref name="TBase"/>) and adds them to the provided <see cref="IServiceCollection"/> with the specified <see cref="ServiceLifetime"/>.
-    ///
-    /// This method is useful when you want to register multiple services in a single call, rather than manually registering each service one by one. It simplifies the process of adding services from a specific assembly that match certain criteria, such as being assignable to a specified base type or interface.
+    ///     The <see cref="AddTypesFromAssembly{TAssemblyType, TBase}" /> method is a helper method that scans an assembly
+    ///     containing a specified type (<paramref name="{TAssemblyType}" />) for types assignable to a specified base type or
+    ///     interface (<paramref name="{TBase}" />) and adds them to the provided <see cref="IServiceCollection" /> with the
+    ///     specified <see cref="ServiceLifetime" />.
+    ///     This method is useful when you want to register multiple services in a single call, rather than manually
+    ///     registering each service one by one. It simplifies the process of adding services from a specific assembly that
+    ///     match certain criteria, such as being assignable to a specified base type or interface.
     /// </remarks>
-    public static IServiceCollection AddTypesFromAssembly<TAssemblyType, TBase>(this IServiceCollection serviceCollection,
+    public static IServiceCollection AddTypesFromAssembly<TAssemblyType, TBase>(
+        this IServiceCollection serviceCollection,
         ServiceLifetime serviceLifetime = ServiceLifetime.Transient)
     {
-        if (serviceCollection == null)
-        {
-            throw new ArgumentNullException(nameof(serviceCollection));
-        }
-        
+        ArgumentNullException.ThrowIfNull(serviceCollection, nameof(serviceCollection));
+
         switch (serviceLifetime)
         {
             case ServiceLifetime.Scoped:
