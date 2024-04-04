@@ -1,4 +1,5 @@
-﻿using JetBrains.Annotations;
+﻿using System.Reflection;
+using JetBrains.Annotations;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -44,14 +45,18 @@ public static class ServiceCollectionExtensions
     {
         var interfaceType = typeof(IModule);
 
-        var moduleTypes = AppDomain.CurrentDomain.GetAssemblies()
-            .SelectMany(s => s.GetTypes())
-            .Where(p => interfaceType.IsAssignableFrom(p)
-                        && p is { IsInterface: false, IsAbstract: false, IsClass: true });
+        var path = AppDomain.CurrentDomain.BaseDirectory;
+        var loadedAssemblies = LoadAssembliesFromPath(path);
 
-        foreach (var moduleType in moduleTypes)
+        var moduleTypes = loadedAssemblies
+            .SelectMany(assembly => assembly.GetTypes())
+            .Where(type => interfaceType.IsAssignableFrom(type) && type is { IsInterface: false, IsAbstract: false })
+            .ToList();
+
+        var modules = moduleTypes.Select(moduleType => (IModule)Activator.CreateInstance(moduleType)!);
+
+        foreach (var module in modules)
         {
-            var module = (IModule)Activator.CreateInstance(moduleType)!;
             if (configuration != null)
             {
                 module.Configuration = configuration;
@@ -61,6 +66,19 @@ public static class ServiceCollectionExtensions
         }
 
         return serviceCollection;
+    }
+
+    private static List<Assembly> LoadAssembliesFromPath(string path)
+    {
+        var loadedAssemblies = AppDomain.CurrentDomain.GetAssemblies().ToList();
+        var loadedPaths = loadedAssemblies.Select(a => a.Location).ToArray();
+
+        var referencedPaths = Directory.GetFiles(path, "*.dll");
+        var toLoad = referencedPaths.Where(r => !loadedPaths.Contains(r, StringComparer.InvariantCultureIgnoreCase))
+            .ToList();
+        toLoad.ForEach(file => loadedAssemblies.Add(AppDomain.CurrentDomain.Load(AssemblyName.GetAssemblyName(file))));
+
+        return loadedAssemblies;
     }
 
     /// <summary>
