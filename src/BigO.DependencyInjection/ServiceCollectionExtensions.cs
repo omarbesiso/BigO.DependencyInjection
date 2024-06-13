@@ -1,4 +1,5 @@
 ﻿using System.Reflection;
+using System.Runtime.Loader;
 using JetBrains.Annotations;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -68,15 +69,21 @@ public static class ServiceCollectionExtensions
         return serviceCollection;
     }
 
+    /// <summary>
+    ///     Loads assemblies from the specified path.
+    /// </summary>
+    /// <param name="path">The path to load assemblies from.</param>
+    /// <returns>A list of loaded assemblies.</returns>
     private static List<Assembly> LoadAssembliesFromPath(string path)
     {
         var loadedAssemblies = AppDomain.CurrentDomain.GetAssemblies().ToList();
-        var loadedPaths = loadedAssemblies.Select(a => a.Location).ToArray();
-
+        var loadedPaths =
+            new HashSet<string>(loadedAssemblies.Select(a => a.Location), StringComparer.OrdinalIgnoreCase);
         var referencedPaths = Directory.GetFiles(path, "*.dll");
-        var toLoad = referencedPaths.Where(r => !loadedPaths.Contains(r, StringComparer.InvariantCultureIgnoreCase))
-            .ToList();
-        toLoad.ForEach(file => loadedAssemblies.Add(AppDomain.CurrentDomain.Load(AssemblyName.GetAssemblyName(file))));
+        var toLoad = referencedPaths.Where(r => !loadedPaths.Contains(r)).ToList();
+
+        loadedAssemblies.AddRange(toLoad.Select(AssemblyName.GetAssemblyName)
+            .Select(AssemblyLoadContext.Default.LoadFromAssemblyName));
 
         return loadedAssemblies;
     }
@@ -105,8 +112,9 @@ public static class ServiceCollectionExtensions
     /// </example>
     /// <remarks>
     ///     The <see cref="AddTypesFromAssembly{TAssemblyType, TBase}" /> method is a helper method that scans an assembly
-    ///     containing a specified type (<paramref name="{TAssemblyType}" />) for types assignable to a specified base type or
-    ///     interface (<paramref name="{TBase}" />) and adds them to the provided <see cref="IServiceCollection" /> with the
+    ///     containing a specified type (<typeparamref name="TAssemblyType" />) for types assignable to a specified base type
+    ///     or
+    ///     interface (<typeparamref name="TBase" />) and adds them to the provided <see cref="IServiceCollection" /> with the
     ///     specified <see cref="ServiceLifetime" />.
     ///     This method is useful when you want to register multiple services in a single call, rather than manually
     ///     registering each service one by one. It simplifies the process of adding services from a specific assembly that
