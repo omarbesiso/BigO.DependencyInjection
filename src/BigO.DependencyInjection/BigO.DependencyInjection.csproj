@@ -31,7 +31,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<Resource Include="Readme.md">
+		<Resource Include="Docs\Readme.md">
 			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
 			<Pack>True</Pack>
 			<PackagePath>\</PackagePath>
