@@ -1,9 +1,8 @@
-﻿
-# BigO.DependencyInjection
+﻿# BigO.DependencyInjection
 
 [![NuGet version](https://badge.fury.io/nu/BigO.DependencyInjection.svg)](https://badge.fury.io/nu/BigO.DependencyInjection)
 
-BigO.DependencyInjection provides a set of utilities to streamline and enhance dependency injection in .NET projects. This package aims to simplify common dependency injection patterns, making your code more maintainable and testable.
+BigO.DependencyInjection contains base utilities and extensions for the BigO .NET library.
 
 ## Features
 
@@ -24,38 +23,6 @@ Or via .NET CLI:
 ```bash
 dotnet add package BigO.DependencyInjection
 ```
-
-## Usage
-
-### Registering Services
-
-```csharp
-using BigO.DependencyInjection;
-
-public class Startup
-{
-    public void ConfigureServices(IServiceCollection services)
-    {
-        services.AddBigOService<MyService>(ServiceLifetime.Singleton);
-    }
-}
-```
-
-### Applying Decorators
-
-```csharp
-services.AddDecoratedService<IMyService, MyService, MyServiceDecorator>(ServiceLifetime.Scoped);
-```
-
-### Registering with Factory
-
-```csharp
-services.AddFactoryService<IMyService>(sp => new MyService(sp.GetRequiredService<IOtherService>()));
-```
-
-## Contributing
-
-Contributions are welcome! Please open an issue or submit a pull request for any bugs or features.
 
 ## License
 
