@@ -1,5 +1,4 @@
-﻿using JetBrains.Annotations;
-using Microsoft.Extensions.Configuration;
+﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace BigO.DependencyInjection;
@@ -8,7 +7,6 @@ namespace BigO.DependencyInjection;
 ///     Represents an application module. The module class is responsible for registering the correct service definitions
 ///     and their implementation in each application module.
 /// </summary>
-[PublicAPI]
 public interface IModule
 {
     /// <summary>
