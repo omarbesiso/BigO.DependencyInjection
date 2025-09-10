@@ -26,15 +26,6 @@ namespace BigO.DependencyInjection;
 public static class ServiceCollectionExtensions
 {
     /// <summary>
-    ///     v2.x binary-compat: original signature (no CancellationToken). Forwards to the new overload.
-    /// </summary>
-    public static IServiceCollection AddModule<TModule>(
-        this IServiceCollection services,
-        IConfiguration? configuration = null)
-        where TModule : IModule, new()
-        => AddModule<TModule>(services, configuration, CancellationToken.None);
-
-    /// <summary>
     ///     v2.x binary/behavioral-compat: original signature that *probed base directory by default*.
     /// </summary>
     public static IServiceCollection AddAllModules(
@@ -42,14 +33,14 @@ public static class ServiceCollectionExtensions
         IConfiguration? configuration = null)
         => AddAllModules(
             services,
-            configuration,
             options =>
             {
                 // Preserve 2.x behavior: load *.dll from base directory + already-loaded assemblies.
                 options.ProbeDirectory = AppContext.BaseDirectory;
                 options.ProbeSearchOption = SearchOption.TopDirectoryOnly;
             },
-            CancellationToken.None);
+            configuration
+        );
 
 
     /// <summary>
@@ -60,34 +51,15 @@ public static class ServiceCollectionExtensions
     /// <param name="configuration">
     ///     Optional configuration instance to assign to <see cref="IModule.Configuration" /> prior to initialization.
     /// </param>
-    /// <param name="cancellationToken">
-    ///     A token that can be observed while awaiting asynchronous initialization for modules implementing
-    ///     <see cref="IAsyncModule" />.
-    /// </param>
     /// <returns>The same <see cref="IServiceCollection" /> instance to enable fluent chaining.</returns>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="services" /> is <see langword="null" />.</exception>
-    /// <remarks>
-    ///     <para>
-    ///         If <typeparamref name="TModule" /> implements <see cref="IAsyncModule" />, its
-    ///         <see
-    ///             cref="IAsyncModule.InitializeAsync(Microsoft.Extensions.DependencyInjection.IServiceCollection, System.Threading.CancellationToken)" />
-    ///         is invoked; otherwise
-    ///         <see cref="IModule.Initialize(Microsoft.Extensions.DependencyInjection.IServiceCollection)" /> is used.
-    ///     </para>
-    ///     <para>
-    ///         Call these methods <b>before</b> building the service provider.
-    ///     </para>
-    /// </remarks>
     /// <example>
     ///     <code><![CDATA[
     /// services.AddModule<MyInfrastructureModule>(configuration, cancellationToken);
     /// ]]></code>
     /// </example>
-    public static IServiceCollection AddModule<TModule>(
-        this IServiceCollection services,
-        IConfiguration? configuration = null,
-        CancellationToken cancellationToken = default)
-        where TModule : IModule, new()
+    public static IServiceCollection AddModule<TModule>(this IServiceCollection services,
+        IConfiguration? configuration = null) where TModule : IModule, new()
     {
         ArgumentNullException.ThrowIfNull(services);
 
@@ -97,14 +69,7 @@ public static class ServiceCollectionExtensions
             module.Configuration = configuration;
         }
 
-        if (module is IAsyncModule asyncModule)
-        {
-            asyncModule.InitializeAsync(services, cancellationToken).GetAwaiter().GetResult();
-        }
-        else
-        {
-            module.Initialize(services);
-        }
+        module.Initialize(services);
 
         return services;
     }
@@ -119,9 +84,6 @@ public static class ServiceCollectionExtensions
     /// </param>
     /// <param name="configure">
     ///     Optional delegate to configure <see cref="ModuleDiscoveryOptions" /> for filtering and directory probing.
-    /// </param>
-    /// <param name="cancellationToken">
-    ///     A token observed when invoking asynchronous initialization for modules implementing <see cref="IAsyncModule" />.
     /// </param>
     /// <returns>The same <see cref="IServiceCollection" /> instance to enable fluent chaining.</returns>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="services" /> is <see langword="null" />.</exception>
@@ -157,9 +119,8 @@ public static class ServiceCollectionExtensions
         "Reflection-based module discovery is not trimming-safe. Prefer explicit registration or pass assemblies explicitly.")]
     public static IServiceCollection AddAllModules(
         this IServiceCollection services,
-        IConfiguration? configuration = null,
-        Action<ModuleDiscoveryOptions>? configure = null,
-        CancellationToken cancellationToken = default)
+        Action<ModuleDiscoveryOptions> configure,
+        IConfiguration? configuration = null)
     {
         ArgumentNullException.ThrowIfNull(services);
 
@@ -171,11 +132,6 @@ public static class ServiceCollectionExtensions
 
         foreach (var type in modules)
         {
-            if (cancellationToken.IsCancellationRequested)
-            {
-                break;
-            }
-
             var module = CreateModuleInstance(type, options.RequireParameterlessCtor);
             if (module is null)
             {
@@ -187,14 +143,7 @@ public static class ServiceCollectionExtensions
                 module.Configuration = configuration;
             }
 
-            if (module is IAsyncModule asyncModule)
-            {
-                asyncModule.InitializeAsync(services, cancellationToken).GetAwaiter().GetResult();
-            }
-            else
-            {
-                module.Initialize(services);
-            }
+            module.Initialize(services);
         }
 
         return services;

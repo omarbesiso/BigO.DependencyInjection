@@ -5,7 +5,7 @@ namespace BigO.DependencyInjection;
 /// <summary>
 ///     Provides configuration for module discovery performed by
 ///     <see
-///         cref="ServiceCollectionExtensions.AddAllModules(Microsoft.Extensions.DependencyInjection.IServiceCollection, Microsoft.Extensions.Configuration.IConfiguration?, System.Action{BigO.DependencyInjection.ModuleDiscoveryOptions}?, System.Threading.CancellationToken)" />
+///         cref="ServiceCollectionExtensions.AddAllModules(Microsoft.Extensions.DependencyInjection.IServiceCollection, System.Action{BigO.DependencyInjection.ModuleDiscoveryOptions}?, Microsoft.Extensions.Configuration.IConfiguration?)" />
 ///     .
 /// </summary>
 /// <remarks>
